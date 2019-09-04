@@ -11,7 +11,7 @@ github.com/pkg/errors
 # github.com/sourcegraph/go-langserver v0.0.0-20180410094615-6d56335e3448
 github.com/sourcegraph/go-langserver/pkg/lsp
 github.com/sourcegraph/go-langserver/pkg/lspext
-# github.com/sourcegraph/jsonrpc2 v0.0.0-20180501180217-a3d86c792f0f
+# github.com/sourcegraph/jsonrpc2 v0.0.0-20190106185902-35a74f039c6a
 github.com/sourcegraph/jsonrpc2
 # golang.org/x/net v0.0.0-20180420171651-5f9ae10d9af5
 golang.org/x/net/trace
