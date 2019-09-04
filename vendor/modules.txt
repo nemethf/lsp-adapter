@@ -1,4 +1,4 @@
-# github.com/google/uuid v0.0.0-20161128191214-064e2069ce9c
+# github.com/google/uuid v1.1.1
 github.com/google/uuid
 # github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce
 github.com/hashicorp/errwrap
