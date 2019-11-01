@@ -34,7 +34,39 @@ RUN cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
     /p4ls
 RUN cmake --build . --target server/daemon/install
 
-FROM alpine:3.10
+## I wasn't able to build p4c in alpine
+#
+# RUN apk add gc gc-dev g++ git autoconf automake cmake bison flex \
+#             protobuf protobuf-dev gmp gmp-dev boost boost-static \
+#             boost-dev make
+#
+# RUN git clone --recursive https://github.com/p4lang/p4c.git
+# cd p4c
+# mkdir build
+# cd build
+# cmake .. -DENABLE_EBPF=OFF -DENABLE_P4C_GRAPHS=OFF -DENABLE_P4TEST=OFF \
+#          -DENABLE_GTESTS=OFF
+# make
+
+FROM debian:buster-slim AS p4c
+
+RUN apt-get update && \
+    apt-get install -y \
+        cmake g++ git automake libtool libgc-dev bison flex libfl-dev \
+        libgmp-dev libboost-dev libboost-iostreams-dev libboost-graph-dev \
+        pkg-config python libprotobuf-dev protobuf-compiler && \
+    apt-get clean
+
+RUN git clone --depth=1 --recursive https://github.com/p4lang/p4c.git
+
+WORKDIR p4c
+RUN mkdir build
+WORKDIR build
+RUN cmake .. -DENABLE_EBPF=OFF -DENABLE_P4C_GRAPHS=OFF \
+             -DENABLE_P4TEST=OFF -DENABLE_GTESTS=OFF
+RUN make && make install
+
+FROM debian:buster-slim
 
 LABEL \
   maintainer="felician.nemeth@gmail.com" \
@@ -46,10 +78,23 @@ LABEL \
 # RUN chmod +x /tini
 # ENTRYPOINT ["/tini", "--"]
 
+RUN apt-get update \
+    && apt-get install -y \
+           python gcc libboost-iostreams1.67.0 libboost-regex1.67.0 \
+           libgmpxx4ldbl libgc1c2 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=p4ls-build /usr/local/bin/p4lsd /usr/local/bin
 COPY --from=lsp-adapter /usr/local/bin/lsp-adapter /usr/local/bin
+COPY --from=p4c /usr/local/bin/p4* /usr/local/bin/
+COPY --from=p4c /usr/local/share/p4c /usr/local/share
+COPY dockerfiles/p4/lsp-adapter-replace /
 
-ENTRYPOINT ["/usr/local/bin/lsp-adapter"]
+#ENTRYPOINT ["/usr/local/bin/lsp-adapter"]
 EXPOSE 8080
-CMD ["--trace", "--glob=*.p4:compile_commands.json", \
-     "--proxyAddress=0.0.0.0:8080", "/usr/local/bin/p4lsd"]
+CMD ["/usr/local/bin/lsp-adapter", \
+        "--trace", \
+        "--glob=*.p4:compile_commands.json", \
+        "--proxyAddress=0.0.0.0:8080", \
+        "--beforeInitializeHook=/lsp-adapter-replace", \
+        "/usr/local/bin/p4lsd", "-d"]
