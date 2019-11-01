@@ -51,5 +51,5 @@ COPY --from=lsp-adapter /usr/local/bin/lsp-adapter /usr/local/bin
 
 ENTRYPOINT ["/usr/local/bin/lsp-adapter"]
 EXPOSE 8080
-CMD ["--trace", "--glob=*.p4,compile_commands.json", \
+CMD ["--trace", "--glob=*.p4:compile_commands.json", \
      "--proxyAddress=0.0.0.0:8080", "/usr/local/bin/p4lsd"]
