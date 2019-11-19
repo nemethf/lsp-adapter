@@ -1,0 +1,10 @@
+#!/bin/bash
+
+cache_dir=$1
+file=.ccls
+repl=$(echo "$cache_dir" | sed -e 's/[\/&]/\\&/g')
+for f in "$(find ${cache_dir} -name $file)"; do
+    if [ -f "$f" ]; then
+        sed -i -e "s/@LSPADAPTERDIR@/${repl}/g" "$f"
+    fi
+done
