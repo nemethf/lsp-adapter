@@ -135,12 +135,9 @@ func rawTrimPrefix(s, prefix, pathSep string) string {
 // If update is non-nil, it updates all document URIs in an LSP
 // params/result with the value of f(existingURI). Callers can use
 // this to rewrite paths in the params/result.
-//
-// TODO(sqs): does not support WorkspaceEdit (with a field whose
-// TypeScript type is {[uri: string]: TextEdit[]}.
 func WalkURIFields(o interface{}, update func(lsp.DocumentURI) lsp.DocumentURI) {
-	var walk func(o interface{})
-	walk = func(o interface{}) {
+	var walk func(o interface{}, parent string)
+	walk = func(o interface{}, parent string) {
 		switch o := o.(type) {
 		case map[string]interface{}:
 			for k, v := range o { // Location, TextDocumentIdentifier, TextDocumentItem, etc.
@@ -159,11 +156,16 @@ func WalkURIFields(o interface{}, update func(lsp.DocumentURI) lsp.DocumentURI) 
 						continue
 					}
 				}
-				walk(v)
+				if parent == "changes" {
+					new_uri := update(lsp.DocumentURI(k))
+					delete(o, k)
+					o[string(new_uri)] = v
+				}
+				walk(v, k)
 			}
 		case []interface{}: // Location[]
-			for _, v := range o {
-				walk(v)
+			for k, v := range o {
+				walk(v, string(k))
 			}
 		default: // structs with a "URI" field
 			rv := reflect.ValueOf(o)
@@ -179,11 +181,11 @@ func WalkURIFields(o interface{}, update func(lsp.DocumentURI) lsp.DocumentURI) 
 				for i := 0; i < rv.NumField(); i++ {
 					fv := rv.Field(i)
 					if fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Struct || fv.Kind() == reflect.Array {
-						walk(fv.Interface())
+						walk(fv.Interface(), "n/a")
 					}
 				}
 			}
 		}
 	}
-	walk(o)
+	walk(o, "top")
 }
